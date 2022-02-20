@@ -3,10 +3,11 @@ import curses
 import random
 import asyncio
 import os
+from itertools import cycle
+from curses_tools import draw_frame, get_frame_size, read_controls
 
-from curses_tools import draw_frame
 
-
+BORDER = 1
 TIC_TIMEOUT = 0.1
 SYMBOLS = '+*.:'
 STARS_AMOUNT = 100
@@ -42,18 +43,29 @@ async def fire(canvas, start_row, start_column, rows_speed=-0.3, columns_speed=0
         column += columns_speed
 
 
-async def animate_spaceship(canvas, row, column, *frames):
+async def animate_spaceship(canvas, row, column, max_row, max_column, *frames):
     """Display animation of rocket."""
-    draw_frame(canvas, row, column, frames[0])
-    while True:
-        draw_frame(canvas, row, column, frames[0], negative=True)
-        draw_frame(canvas, row, column, frames[1])
-        for _ in range(3):
-            await asyncio.sleep(0)
-        draw_frame(canvas, row, column, frames[1], negative=True)
-        draw_frame(canvas, row, column, frames[0])
-        for _ in range(3):
-            await asyncio.sleep(0)
+
+    frame_rows, frame_columns = get_frame_size(frames[0])
+    for frame in cycle(frames):
+        row_direction, column_direction, space_button = read_controls(canvas)
+        
+        row += row_direction
+        column += column_direction
+
+        if row <= 0:
+            row = 1
+        if row + frame_rows >= max_row:
+            row = max_row - frame_rows - BORDER
+        if column <= 0:
+            column = 1
+        if column + frame_columns >= max_column:
+            column = max_column - frame_columns - BORDER
+        
+        draw_frame(canvas, row, column, frame)
+        await asyncio.sleep(0)
+        draw_frame(canvas, row, column, frame, negative=True)
+        
 
 
 async def blink(canvas, row, column, symbol='*'):
@@ -102,6 +114,7 @@ def draw(canvas):
 
     curses.curs_set(False)
     canvas.border()
+    canvas.nodelay(True)
 
     coroutines = [
         blink(
@@ -114,7 +127,16 @@ def draw(canvas):
     coroutines.append(fire(canvas, max_row//2, max_column//2 + 2))
     
     rocket_frames = get_frames_from_files('rocket_frames')
-    coroutines.append(animate_spaceship(canvas, max_row//2, max_column//2, *rocket_frames))
+    coroutines.append(
+        animate_spaceship(
+            canvas,
+            max_row//2,
+            max_column//2,
+            max_row,
+            max_column,
+            *rocket_frames,
+        )
+    )
 
     while True:
         for coroutine in coroutines:
@@ -122,9 +144,9 @@ def draw(canvas):
                 coroutine.send(None)
             except StopIteration:
                 coroutines.remove(coroutine)
-        if len(coroutines) == 0:
+        if not coroutines:
             break
-
+        
         canvas.refresh()
         time.sleep(TIC_TIMEOUT)
 
