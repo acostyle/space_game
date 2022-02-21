@@ -57,6 +57,9 @@ async def animate_spaceship(canvas, row, column, max_row, max_column, *frames):
         row_direction, column_direction, space_button = read_controls(canvas)
         row_speed, column_speed = update_speed(row_speed, column_speed, row_direction, column_direction)
 
+        if space_button:
+            COROUTINES.append(fire(canvas, row - 1, column + 2))
+
         if row_speed + column_direction + frame_columns > max_column or column + column_direction < BORDER:
             column_speed = 0
 
@@ -67,7 +70,7 @@ async def animate_spaceship(canvas, row, column, max_row, max_column, *frames):
         column += column_speed
 
         draw_frame(canvas, row, column, frame)
-        await asyncio.sleep(0)
+        await sleep(1)
         draw_frame(canvas, row, column, frame, negative=True)
 
 
