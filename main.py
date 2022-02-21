@@ -72,31 +72,31 @@ async def animate_spaceship(canvas, row, column, max_row, max_column, *frames):
 async def blink(canvas, row, column, symbol='*'):
     """Display animation of stars."""
 
-    for _ in range(random.randint(0, 10)):
-        await asyncio.sleep(0)
+    await sleep(random.randint(0, 10))
 
     while True:
         canvas.addstr(row, column, symbol, curses.A_DIM)
-        for _ in range(20):
-            await asyncio.sleep(0)
+        await sleep(20)
 
         canvas.addstr(row, column, symbol)
-        for _ in range(3):
-            await asyncio.sleep(0)
+        await sleep(3)
 
         canvas.addstr(row, column, symbol, curses.A_BOLD)
-        for _ in range(5):
-            await asyncio.sleep(0)
+        await sleep(5)
 
         canvas.addstr(row, column, symbol)
-        for _ in range(3):
-            await asyncio.sleep(0)
+        await sleep(3)
 
 
 def get_random_coordinates(max_row, max_column):
     """Get random star coordinates."""
 
     return random.randint(1, max_row - 2), random.randint(1, max_column - 2)
+
+
+async def sleep(tics=1):
+    for _ in range(tics):
+        await asyncio.sleep(0)
 
 
 def get_frames_from_files(frames_dir):
@@ -109,10 +109,10 @@ def get_frames_from_files(frames_dir):
     return frames
 
 
-async def fill_orbit_with_garbage(canvas, max_column, garbage_delay, garbage_frames):
+async def fill_orbit_with_garbage(canvas, max_column, offset_tics, garbage_frames):
     while True:
-        for _ in range(garbage_delay):
-            await asyncio.sleep(0)
+        await sleep(offset_tics)
+
         COROUTINES.append(
             fly_garbage(
                 canvas,
@@ -156,12 +156,12 @@ def draw(canvas):
     )
 
     garbage_frames = get_frames_from_files('trash_frames')
-    garbage_delay = 25
+    offset_tics = 25
     COROUTINES.append(
         fill_orbit_with_garbage(
             canvas,
             max_column,
-            garbage_delay,
+            offset_tics,
             garbage_frames,
         )
     )
